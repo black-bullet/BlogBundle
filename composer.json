@@ -20,7 +20,7 @@
         "sonata-project/doctrine-orm-admin-bundle": "2.*@dev",
         "sonata-project/cache-bundle": "2.*@dev",
         "knplabs/knp-paginator-bundle": "2.*",
-        "zendframework/zend-feed": "2.0.*"
+        "zendframework/zend-feed": "2.1.*"
     },
     "suggest": {
         "liip/functional-test-bundle": "functional testing bundle",
