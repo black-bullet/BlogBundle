@@ -1,23 +1,9 @@
 {% extends 'StfalconBlogBundle::layout.html.twig' %}
 
-{% block title %}{% trans %}Блог{% endtrans %}{{ parent() }}{% endblock %}
-
-{% block additional %}
-    <link rel="canonical" href="{{ url('blog') }}" />
-{% endblock additional %}
-
-{% block content_wrapper %}
-    {{ parent() }}
+{% block content %}
     {% if posts %}
         {% include 'StfalconBlogBundle:Post:_posts.html.twig' with {'posts': posts} %}
 
         {{ knp_pagination_render(posts) }}
     {% endif %}
-
-    <button id="scroll-top" class="button-up scroll-to-top"></button>
-{% endblock %}
-{% block after_body %}
-    <button id="hire_us-js" class="hire_us {% if app.request.locale == 'en' %}en-btn{% endif %}">{{ 'Работать с нами!'|trans }}</button>
-
-    {{ render(controller('ApplicationDefaultBundle:Widgets:hireUs')) }}
 {% endblock %}

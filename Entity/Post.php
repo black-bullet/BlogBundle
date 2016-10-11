@@ -2,11 +2,9 @@
 
 namespace Stfalcon\Bundle\BlogBundle\Entity;
 
-use Application\Bundle\UserBundle\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use Gedmo\Translatable\Translatable;
 use Gedmo\Mapping\Annotation as Gedmo;
 
 /**
@@ -15,9 +13,8 @@ use Gedmo\Mapping\Annotation as Gedmo;
  * @author Stepan Tanasiychuk <ceo@stfalcon.com>
  * @ORM\Table(name="blog_posts")
  * @ORM\Entity(repositoryClass="Stfalcon\Bundle\BlogBundle\Repository\PostRepository")
- * @Gedmo\TranslationEntity(class="Stfalcon\Bundle\BlogBundle\Entity\PostTranslation")
  */
-class Post implements Translatable
+class Post
 {
     /**
      * Post id
@@ -34,7 +31,6 @@ class Post implements Translatable
      *
      * @var string $title
      * @Assert\NotBlank()
-     * @Gedmo\Translatable(fallback=true)
      * @ORM\Column(name="title", type="string", length=255)
      */
     private $title = '';
@@ -43,9 +39,7 @@ class Post implements Translatable
      * @var string $slug
      *
      * @Assert\NotBlank()
-     * @Assert\Length(
-     *      min = "3"
-     * )
+     * @Assert\MinLength(3)
      * @ORM\Column(name="slug", type="string", length=128, unique=true)
      */
     private $slug;
@@ -53,19 +47,26 @@ class Post implements Translatable
     /**
      * Post text
      *
-     * @var string $text
+     * @var text $text
      * @Assert\NotBlank()
-     * @Gedmo\Translatable(fallback=true)
      * @ORM\Column(name="text", type="text")
      */
     private $text;
+
+    /**
+     * Post text as HTML code
+     *
+     * @var text $textAsHtml
+     * @ORM\Column(name="text_as_html", type="text")
+     */
+    private $textAsHtml;
 
     /**
      * Tags for post
      *
      * @var ArrayCollection
      * @Assert\NotBlank()
-     * @ORM\ManyToMany(targetEntity="Stfalcon\Bundle\BlogBundle\Entity\Tag", inversedBy="posts")
+     * @ORM\ManyToMany(targetEntity="Stfalcon\Bundle\BlogBundle\Entity\Tag")
      * @ORM\JoinTable(name="blog_posts_tags",
      *      joinColumns={@ORM\JoinColumn(name="post_id", referencedColumnName="id")},
      *      inverseJoinColumns={@ORM\JoinColumn(name="tag_id", referencedColumnName="id")}
@@ -77,6 +78,7 @@ class Post implements Translatable
      * @var \DateTime $created
      *
      * @ORM\Column(type="datetime")
+     * @Gedmo\Timestampable(on="create")
      */
     private $created;
 
@@ -96,73 +98,13 @@ class Post implements Translatable
     private $commentsCount = 0;
 
     /**
-     * @var User $author
-     *
-     * @ORM\ManyToOne(targetEntity="Application\Bundle\UserBundle\Entity\User")
-     * @ORM\JoinColumn(name="author_id", referencedColumnName="id")
-     */
-    protected $author;
-
-    /**
-     * @var boolean
-     *
-     * @ORM\Column(type="boolean")
-     */
-    protected $published = true;
-
-    /**
-     * @ORM\OneToMany(
-     *   targetEntity="PostTranslation",
-     *   mappedBy="object",
-     *   cascade={"persist", "remove"}
-     * )
-     */
-    private $translations;
-
-    /**
-     * @Gedmo\Locale
-     */
-    private $locale;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="image", type="string", length=255, nullable=true)
-     */
-    private $image;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="meta_keywords", type="text", nullable=true)
-     * @Gedmo\Translatable(fallback=true)
-     */
-    private $metaKeywords;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="meta_description", type="text", nullable=true)
-     * @Gedmo\Translatable(fallback=true)
-     */
-    private $metaDescription;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="meta_title", type="text", nullable=true)
-     * @Gedmo\Translatable(fallback=true)
-     */
-    private $metaTitle;
-
-    /**
      * Initialization properties for new post entity
+     *
+     * @return void
      */
     public function __construct()
     {
         $this->tags = new ArrayCollection();
-        $this->created = new \DateTime();
-        $this->translations = new ArrayCollection();
     }
 
     /**
@@ -178,7 +120,9 @@ class Post implements Translatable
     /**
      * Set tags to post
      *
-     * @param ArrayCollection $tags
+     * @param $tags Tags collection
+     *
+     * @return void
      */
     public function setTags($tags)
     {
@@ -193,22 +137,6 @@ class Post implements Translatable
     public function getTags()
     {
         return $this->tags;
-    }
-
-    /**
-     * @param Tag $tag
-     */
-    public function addTag(Tag $tag)
-    {
-        $this->tags->add($tag);
-    }
-
-    /**
-     * @param Tag $tag
-     */
-    public function removeTag(Tag $tag)
-    {
-        $this->tags->removeElement($tag);
     }
 
     /**
@@ -265,6 +193,7 @@ class Post implements Translatable
     public function setText($text)
     {
         $this->text = $text;
+        $this->textAsHtml = $this->_transformTextAsHtml($text);
     }
 
     /**
@@ -275,6 +204,40 @@ class Post implements Translatable
     public function getText()
     {
         return $this->text;
+    }
+
+    /**
+     * Get post text as HTML code
+     *
+     * @return string
+     */
+    public function getTextAsHtml()
+    {
+        return $this->textAsHtml;
+    }
+
+
+    /**
+     * Transform post text to html
+     *
+     * @param string $text Source post text
+     *
+     * @return string Post text as html
+     */
+    private function _transformTextAsHtml($text)
+    {
+        // update text html code
+        require_once __DIR__ . '/../Resources/vendor/geshi/geshi.php';
+
+        $text = preg_replace_callback(
+            '/<pre lang="(.*?)">\r?\n?(.*?)\r?\n?\<\/pre>/is',
+            function($data) {
+                $geshi = new \GeSHi($data[2], $data[1]);
+                return $geshi->parse_code();
+            }, $text
+        );
+
+        return $text;
     }
 
     /**
@@ -351,194 +314,5 @@ class Post implements Translatable
     public function __toString()
     {
         return $this->getTitle();
-    }
-
-    /**
-     * @param User $author
-     */
-    public function setAuthor($author)
-    {
-        $this->author = $author;
-    }
-
-    /**
-     * @return User
-     */
-    public function getAuthor()
-    {
-        return $this->author;
-    }
-
-    /**
-     * @param boolean $published
-     */
-    public function setPublished($published)
-    {
-        $this->published = $published;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function getPublished()
-    {
-        return $this->published;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isPublished()
-    {
-        return (bool) $this->published;
-    }
-
-    /**
-     * @param PostTranslation $postTranslation
-     */
-    public function addTranslations(PostTranslation $postTranslation)
-    {
-        if (!$this->translations->contains($postTranslation)) {
-            $this->translations->add($postTranslation);
-            $postTranslation->setObject($this);
-        }
-    }
-    /**
-     * @param PostTranslation $postTranslation
-     */
-    public function addTranslation(PostTranslation $postTranslation)
-    {
-        if (!$this->translations->contains($postTranslation)) {
-            $this->translations->add($postTranslation);
-            $postTranslation->setObject($this);
-        }
-    }
-
-    /**
-     * @param PostTranslation $postTranslation
-     */
-    public function removeTranslation(PostTranslation $postTranslation)
-    {
-        $this->translations->removeElement($postTranslation);
-    }
-
-    /**
-     * @param ArrayCollection $translations
-     */
-    public function setTranslations($translations)
-    {
-        $this->translations = $translations;
-    }
-
-    /**
-     * @param string $locale
-     */
-    public function setTranslatableLocale($locale)
-    {
-        $this->locale = $locale;
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getTranslations()
-    {
-        return $this->translations;
-    }
-
-    /**
-     * @param mixed $locale
-     */
-    public function setLocale($locale)
-    {
-        $this->locale = $locale;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getLocale()
-    {
-        return $this->locale;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMetaKeywords()
-    {
-        return $this->metaKeywords;
-    }
-
-    /**
-     * @param string $metaKeywords
-     *
-     * @return Post
-     */
-    public function setMetaKeywords($metaKeywords)
-    {
-        $this->metaKeywords = $metaKeywords;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMetaDescription()
-    {
-        return $this->metaDescription;
-    }
-
-    /**
-     * @param string $metaDescription
-     *
-     * @return Post
-     */
-    public function setMetaDescription($metaDescription)
-    {
-        $this->metaDescription = $metaDescription;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMetaTitle()
-    {
-        if (empty($this->metaTitle)) {
-            return $this->getTitle();
-        }
-
-        return $this->metaTitle;
-    }
-
-    /**
-     * @param string $metaTitle
-     */
-    public function setMetaTitle($metaTitle)
-    {
-        $this->metaTitle = $metaTitle;
-    }
-
-    /**
-     * @return string
-     */
-    public function getImage()
-    {
-        return $this->image;
-    }
-
-    /**
-     * @param string $image
-     *
-     * @return Post
-     */
-    public function setImage($image)
-    {
-        $this->image = $image;
-
-        return $this;
     }
 }

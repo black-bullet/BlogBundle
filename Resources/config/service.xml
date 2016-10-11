@@ -17,13 +17,13 @@
             <tag name="sonata.admin" manager_type="orm" group="BlogBundle" label="Posts" />
             <argument />
             <argument>%stfalcon_blog.admin.post.entity%</argument>
-            <argument>StfalconBlogBundle:Admin\PostAdmin</argument>
+            <argument />
         </service>
         <service id="stfalcon_blog.admin.tag" class="%stfalcon_blog.admin.tag.class%">
             <tag name="sonata.admin" manager_type="orm" group="BlogBundle" label="Tags" />
             <argument />
             <argument>%stfalcon_blog.admin.tag.entity%</argument>
-            <argument>StfalconBlogBundle:Admin\TagAdmin</argument>
+            <argument />
         </service>
 
         <service id="twig.extension.read_more" class="Stfalcon\Bundle\BlogBundle\Extension\ReadMoreTwigExtension">
@@ -31,18 +31,9 @@
             <tag name="twig.extension" alias="read_more" />
         </service>
 
-        <service id="twig.extension.highlight_code" class="Stfalcon\Bundle\BlogBundle\Extension\HighlightCodeTwigExtension">
-            <tag name="twig.extension" alias="highlight_code" />
-        </service>
-
         <service id="form.type.tags" class="Stfalcon\Bundle\BlogBundle\Bridge\Doctrine\Form\Type\TagsType">
             <tag name="form.type" alias="tags" />
             <argument type="service" id="doctrine" />
-        </service>
-
-        <service id="twig.extension.blog" class="Stfalcon\Bundle\BlogBundle\Twig\BlogExtension">
-            <argument type="service" id="imagine.cache.path.resolver"/>
-            <tag name="twig.extension" alias="blog" />
         </service>
     </services>
 </container>

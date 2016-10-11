@@ -21,6 +21,8 @@ class TagsType extends AbstractType
      * Constructor injection
      *
      * @param RegistryInterface $registry Doctrine registry object
+     *
+     * @return void
      */
     public function __construct(RegistryInterface $registry)
     {
@@ -37,9 +39,8 @@ class TagsType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $builder->addViewTransformer(
-            new EntitiesToStringTransformer($this->registry->getManager()),
-            true
+        $builder->prependClientTransformer(
+            new EntitiesToStringTransformer($this->registry->getEntityManager())
         );
     }
 
