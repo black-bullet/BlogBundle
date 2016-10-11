@@ -1,0 +1,29 @@
+<header>
+    <h1>
+        {% if linkTitle %}
+            <a href="{{ path('blog_post_view', { 'slug': post.slug }) }}">{{ post.title }}</a>
+        {% else %}
+            {{ post.title }}
+        {% endif %}
+    </h1>
+
+    <div class="post-info">
+        <time pubdate="pubdate">{{ post.created|localizeddate('long', 'none', app.request.locale) }}</time>
+        {% if post.author %}
+            {% if post.author.usernameCanonical is defined and post.author.usernameCanonical is not empty %}
+                <a class="author_blog" href="{{ path('blog_author', { 'usernameCanonical': post.author.usernameCanonical }) }}">
+                    {% if post.author.avatarName %}
+                        <img src="{{ vich_uploader_asset(post.author, 'avatar') | apply_filter('avatar') }}" alt="{{ post.author.firstname | default('') ~ ' ' ~ post.author.lastname | default('') }}"/>
+                    {% endif %}
+                    <span>{{ post.author.firstname | default('') ~ ' ' ~  post.author.lastname | default('') }}</span>
+                </a>
+            {% else %}
+                {% if post.author.avatarName %}
+                    <img src="{{ vich_uploader_asset(post.author, 'avatar') | apply_filter('avatar') }}" alt="{{ post.author.firstname | default('') ~ ' ' ~ post.author.lastname | default('') }}"/>
+                {% endif %}
+                <span>{{ post.author.firstname | default('') ~ ' ' ~  post.author.lastname | default('') }}</span>
+            {% endif %}
+        {% endif %}
+        <a href="{{ path('blog_post_view', { 'slug': post.slug }) }}#disqus_thread" data-disqus-identifier="{{ app.request.locale ~ ' ' ~ post.id }}">{{ 'Комментировать'|trans }}</a>
+    </div>
+</header>

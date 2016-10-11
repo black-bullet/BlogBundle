@@ -3,7 +3,11 @@
 namespace Stfalcon\Bundle\BlogBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Gedmo\Translatable\Translatable;
+use Stfalcon\Bundle\BlogBundle\Entity\TagTranslation;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -12,8 +16,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  * @author Stepan Tanasiychuk <ceo@stfalcon.com>
  * @ORM\Table(name="blog_tags")
  * @ORM\Entity
+ *
+ * @Gedmo\TranslationEntity(class="Stfalcon\Bundle\BlogBundle\Entity\TagTranslation")
  */
-class Tag
+class Tag implements Translatable
 {
     /**
      * Tag id
@@ -28,30 +34,40 @@ class Tag
     /**
      * Tag text
      *
-     * @var text $text
-     * @Assert\NotBlank()
+     * @var string $text
+     *
      * @ORM\Column(name="text", type="string", length=255)
+     *
+     * @Gedmo\Translatable(fallback=true)
+     *
+     * @Assert\NotBlank()
      */
     private $text = '';
 
     /**
-     * @var Doctrine\Common\Collections\ArrayCollection
+     * @var ArrayCollection
      *
      * @ORM\ManyToMany(targetEntity="Stfalcon\Bundle\BlogBundle\Entity\Post", mappedBy="tags")
      */
     private $posts;
 
     /**
+     * @var Collection|TagTranslation[] $translations
+     *
+     * @ORM\OneToMany(targetEntity="TagTranslation", mappedBy="object", cascade={"persist", "remove"})
+     */
+    private $translations;
+
+    /**
      * Entity constructor
      *
      * @param string $text A tag text
-     *
-     * @return void
      */
     public function  __construct($text = null)
     {
-        $this->text = $text;
-        $this->posts = new ArrayCollection();
+        $this->text         = $text;
+        $this->posts        = new ArrayCollection();
+        $this->translations = new ArrayCollection();
     }
 
     /**
@@ -69,11 +85,13 @@ class Tag
      *
      * @param string $text A tag text
      *
-     * @return void
+     * @return Tag
      */
     public function setText($text)
     {
         $this->text = $text;
+
+        return $this;
     }
 
     /**
@@ -104,5 +122,54 @@ class Tag
     public function __toString()
     {
         return $this->getText();
+    }
+
+    /**
+     * @param TagTranslation $tagTranslation
+     *
+     * @return Tag
+     */
+    public function addTranslation(TagTranslation $tagTranslation)
+    {
+        if (!$this->translations->contains($tagTranslation)) {
+            $this->translations->add($tagTranslation);
+            $tagTranslation->setObject($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Remove translation
+     *
+     * @param TagTranslation $tagTranslation
+     *
+     * @return Tag
+     */
+    public function removeTranslation(TagTranslation $tagTranslation)
+    {
+        $this->translations->removeElement($tagTranslation);
+
+        return $this;
+    }
+
+    /**
+     * Set translations
+     *
+     * @param ArrayCollection $translations
+     */
+    public function setTranslations($translations)
+    {
+        $this->translations = $translations;
+    }
+
+    /**
+     * Get translations
+     *
+     * @return ArrayCollection
+     */
+    public function getTranslations()
+    {
+        return $this->translations;
     }
 }
